@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-on-surface font-body text-body-md antialiased;
+  }
+}
+
+@layer components {
+  /* Level 1 elevation — tonal layering, no heavy drop shadows.
+     Deliberately no backdrop-filter: that belongs to Level 2 (.glass-panel).
+     Putting one here also makes Chromium skip painting the card's image until
+     the first repaint, leaving the cards blank on load. */
+  .glass-card {
+    @apply bg-white/80 border border-primary/10;
+    box-shadow: 0 8px 24px rgba(103, 85, 140, 0.05);
+    transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+  }
+
+  .glass-card:hover {
+    @apply border-primary/25;
+    transform: scale(1.02);
+    box-shadow: 0 12px 40px rgba(103, 85, 140, 0.12);
+  }
+
+  /* Level 2 elevation — the Auralis signature frosted look */
+  .glass-panel {
+    @apply bg-white/85 backdrop-blur-xl;
+  }
+}
+
+/* Soft gradient wash behind the whole catalog */
+.boutique-wash {
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(177, 156, 217, 0.18), transparent 45%),
+    radial-gradient(circle at 88% 12%, rgba(152, 255, 217, 0.14), transparent 42%),
+    radial-gradient(circle at 70% 92%, rgba(255, 209, 220, 0.16), transparent 45%);
+  background-attachment: fixed;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  user-select: none;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
