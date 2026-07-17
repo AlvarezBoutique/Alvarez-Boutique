@@ -5,7 +5,8 @@ import Image from "next/image";
 import { supabase } from "@/lib/browserClient";
 import { formatPrice } from "@/lib/catalog";
 import ProductModal from "../components/ProductModal";
-import { ErrorNote, PrimaryButton, inputClass } from "../components/Field";
+import Modal from "../components/Modal";
+import { ErrorNote, PrimaryButton, GhostButton, inputClass } from "../components/Field";
 
 const TODAS = "todas";
 
@@ -17,6 +18,11 @@ export default function InventarioPage() {
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState(TODAS);
   const [editing, setEditing] = useState(null); // null | {} | product
+
+  // Modo selección para borrar varios de una vez.
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+  const [confirmDel, setConfirmDel] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,6 +71,12 @@ export default function InventarioPage() {
     setEditing(null);
   };
 
+  const removeMany = async (ids) => {
+    const { error: err } = await supabase.from("products").delete().in("id", ids);
+    if (err) throw new Error(err.message);
+    await load();
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return products.filter((p) => {
@@ -74,7 +86,30 @@ export default function InventarioPage() {
     });
   }, [products, search, cat]);
 
+  const toggle = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  // "Todos" se refiere a lo que estás viendo con el filtro puesto, no a todo el inventario.
+  const todosVisiblesMarcados = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
+  const toggleTodosVisibles = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (todosVisiblesMarcados) filtered.forEach((p) => next.delete(p.id));
+      else filtered.forEach((p) => next.add(p.id));
+      return next;
+    });
+
+  const salirSeleccion = () => {
+    setSelecting(false);
+    setSelected(new Set());
+  };
+
   const visibles = products.filter((p) => p.in_stock).length;
+  const marcados = products.filter((p) => selected.has(p.id));
 
   return (
     <section className="mx-auto max-w-container-max px-5 py-8 lg:px-margin-x lg:py-margin-y">
@@ -85,14 +120,43 @@ export default function InventarioPage() {
           <p className="mt-1 text-body-md text-on-surface-variant/80">
             {loading
               ? "Cargando…"
-              : `${products.length} producto${products.length === 1 ? "" : "s"} · ${visibles} visible${
-                  visibles === 1 ? "" : "s"
-                } en el catálogo`}
+              : selecting
+                ? `${selected.size} seleccionado${selected.size === 1 ? "" : "s"}`
+                : `${products.length} producto${products.length === 1 ? "" : "s"} · ${visibles} visible${
+                    visibles === 1 ? "" : "s"
+                  } en el catálogo`}
           </p>
         </div>
-        <PrimaryButton type="button" onClick={() => setEditing({})}>
-          + Nuevo producto
-        </PrimaryButton>
+
+        {selecting ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <GhostButton type="button" onClick={toggleTodosVisibles} disabled={filtered.length === 0}>
+              {todosVisiblesMarcados ? "Quitar todos" : "Seleccionar todos"}
+            </GhostButton>
+            <GhostButton type="button" onClick={salirSeleccion}>
+              Cancelar
+            </GhostButton>
+            <button
+              type="button"
+              disabled={selected.size === 0}
+              onClick={() => setConfirmDel(true)}
+              className="rounded bg-error px-5 py-2 font-label text-label-sm uppercase text-on-error transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Eliminar ({selected.size})
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {products.length > 0 && (
+              <GhostButton type="button" onClick={() => setSelecting(true)}>
+                Eliminar productos
+              </GhostButton>
+            )}
+            <PrimaryButton type="button" onClick={() => setEditing({})}>
+              + Nuevo producto
+            </PrimaryButton>
+          </div>
+        )}
       </div>
 
       <ErrorNote>{error}</ErrorNote>
@@ -140,52 +204,71 @@ export default function InventarioPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-gutter">
-          {filtered.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setEditing(p)}
-              className="group flex flex-col overflow-hidden rounded-lg text-left glass-card"
-            >
-              <div className="relative isolate aspect-[3/4] overflow-hidden bg-[#F2F0F7]">
-                {p.image_url ? (
-                  <Image
-                    src={p.image_url}
-                    alt=""
-                    fill
-                    sizes="(max-width: 1024px) 50vw, 25vw"
-                    className="object-cover mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-outline-variant">
-                    <span className="material-symbols-outlined text-3xl">image</span>
-                  </div>
-                )}
-                {!p.in_stock && (
-                  <span className="absolute left-3 top-3 rounded-full bg-surface-container-highest/90 px-2.5 py-1 font-label text-[10px] uppercase tracking-[0.08em] text-on-surface-variant backdrop-blur-md">
-                    Oculto
-                  </span>
-                )}
-              </div>
-              <div className="p-4">
-                <p className="mb-1 font-label text-[10px] uppercase tracking-[0.08em] text-primary">
-                  {p.categories?.name}
-                </p>
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-headline text-title-md">{p.name}</h3>
-                  <span className="shrink-0 font-label text-label-sm text-primary">
-                    {formatPrice(p.price, p.currency)}
-                  </span>
+          {filtered.map((p) => {
+            const sel = selected.has(p.id);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={selecting ? sel : undefined}
+                onClick={() => (selecting ? toggle(p.id) : setEditing(p))}
+                className={`group flex flex-col overflow-hidden rounded-lg text-left glass-card ${
+                  selecting && sel ? "ring-2 ring-primary" : ""
+                }`}
+              >
+                <div className="relative isolate aspect-[3/4] overflow-hidden bg-[#F2F0F7]">
+                  {p.image_url ? (
+                    <Image
+                      src={p.image_url}
+                      alt=""
+                      fill
+                      sizes="(max-width: 1024px) 50vw, 25vw"
+                      className={`object-cover mix-blend-multiply transition-transform duration-700 group-hover:scale-105 ${
+                        selecting && !sel ? "opacity-60" : ""
+                      }`}
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-outline-variant">
+                      <span className="material-symbols-outlined text-3xl">image</span>
+                    </div>
+                  )}
+
+                  {selecting && (
+                    <span
+                      className={`absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border-2 backdrop-blur-md transition-colors ${
+                        sel ? "border-primary bg-primary text-on-primary" : "border-white/80 bg-white/60"
+                      }`}
+                    >
+                      {sel && <span className="material-symbols-outlined text-[16px]">check</span>}
+                    </span>
+                  )}
+
+                  {!p.in_stock && !selecting && (
+                    <span className="absolute left-3 top-3 rounded-full bg-surface-container-highest/90 px-2.5 py-1 font-label text-[10px] uppercase tracking-[0.08em] text-on-surface-variant backdrop-blur-md">
+                      Oculto
+                    </span>
+                  )}
                 </div>
-                {p.subtitle && (
-                  <p className="mt-1 font-label text-label-sm uppercase tracking-[0.08em] text-on-surface-variant/60">
-                    {p.subtitle}
+                <div className="p-4">
+                  <p className="mb-1 font-label text-[10px] uppercase tracking-[0.08em] text-primary">
+                    {p.categories?.name}
                   </p>
-                )}
-              </div>
-            </button>
-          ))}
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-headline text-title-md">{p.name}</h3>
+                    <span className="shrink-0 font-label text-label-sm text-primary">
+                      {formatPrice(p.price, p.currency)}
+                    </span>
+                  </div>
+                  {p.subtitle && (
+                    <p className="mt-1 font-label text-label-sm uppercase tracking-[0.08em] text-on-surface-variant/60">
+                      {p.subtitle}
+                    </p>
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -201,6 +284,69 @@ export default function InventarioPage() {
           onClose={() => setEditing(null)}
         />
       )}
+
+      {confirmDel && (
+        <ConfirmarBorrado
+          items={marcados}
+          onConfirm={async () => {
+            await removeMany(marcados.map((p) => p.id));
+            setConfirmDel(false);
+            salirSeleccion();
+          }}
+          onClose={() => setConfirmDel(false)}
+        />
+      )}
     </section>
+  );
+}
+
+function ConfirmarBorrado({ items, onConfirm, onClose }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const confirm = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await onConfirm();
+    } catch (e) {
+      setError(e.message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title={`Eliminar ${items.length} producto${items.length === 1 ? "" : "s"}`} onClose={onClose}>
+      <p className="-mt-3 mb-5 text-sm leading-relaxed text-on-surface-variant/70">
+        Se quitarán del catálogo público de inmediato. Esta acción no se puede deshacer.
+      </p>
+
+      <ul className="mb-5 max-h-60 overflow-y-auto rounded border border-outline-variant/40 divide-y divide-outline-variant/30">
+        {items.map((p) => (
+          <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-2">
+            <span className="truncate text-body-md text-on-surface">{p.name}</span>
+            <span className="shrink-0 font-label text-[10px] uppercase tracking-[0.08em] text-on-surface-variant/60">
+              {p.categories?.name}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <ErrorNote>{error}</ErrorNote>
+
+      <div className="flex justify-end gap-3">
+        <GhostButton type="button" onClick={onClose}>
+          Cancelar
+        </GhostButton>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={confirm}
+          className="rounded bg-error px-5 py-2 font-label text-label-sm uppercase text-on-error transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {busy ? "Eliminando…" : `Eliminar ${items.length}`}
+        </button>
+      </div>
+    </Modal>
   );
 }
