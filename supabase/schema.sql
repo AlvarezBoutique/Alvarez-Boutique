@@ -26,7 +26,7 @@ create table if not exists public.products (
   subtitle    text,
   description text,
   price       numeric(10,2) not null default 0,
-  currency    text not null default 'USD',
+  currency    text not null default 'HNL',
   image_url   text,
   badge       text,                  -- 'Novedad' | 'Edición Limitada' | 'Más Vendido' | null
   in_stock    boolean not null default true,
@@ -54,7 +54,7 @@ create policy "public read categories" on public.categories
 drop policy if exists "public read products" on public.products;
 create policy "public read products" on public.products
   for select using (true);
--- La escritura se define en auth.sql (cada cuenta, sólo en su categoría).
+-- La escritura se define en auth.sql (cualquier cuenta con sesión).
 
 -- ---------- Datos: categorías ----------
 insert into public.categories (slug, name, icon, sort) values
@@ -62,7 +62,8 @@ insert into public.categories (slug, name, icon, sort) values
   ('caballeros','Caballeros','man',2),
   ('ninos','Niños','child_care',3),
   ('bebes','Bebés','baby_changing_station',4),
-  ('perfumes','Perfumes','spa',5)
+  ('perfumes','Perfumes','spa',5),
+  ('relojes','Relojes','watch',6)
 on conflict (slug) do update set name=excluded.name, icon=excluded.icon, sort=excluded.sort;
 
 -- ---------- Datos: productos de ejemplo ----------

@@ -122,7 +122,19 @@ export default function CatalogView({ category, products }) {
               />
             ))}
           </div>
+        ) : products.length === 0 ? (
+          // Colección sin piezas todavía (p. ej. una categoría recién creada).
+          <div className="rounded-lg border border-dashed border-primary/20 py-20 text-center">
+            <span className="material-symbols-outlined mb-3 text-4xl text-outline-variant">
+              inventory_2
+            </span>
+            <p className="font-headline text-title-md text-on-surface">Colección en camino</p>
+            <p className="mt-1 text-body-md text-on-surface-variant/70">
+              Pronto encontrarás piezas aquí.
+            </p>
+          </div>
         ) : (
+          // Hay piezas, pero la búsqueda no encontró ninguna.
           <div className="rounded-lg border border-dashed border-primary/20 py-20 text-center">
             <span className="material-symbols-outlined mb-3 text-4xl text-outline-variant">
               search_off

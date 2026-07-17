@@ -58,7 +58,7 @@ export default function WishlistView({ allProducts }) {
       : "";
 
   const mensaje = () => {
-    const lista = items.map((p) => `• ${p.name} — ${formatPrice(p.price, p.currency)}`).join("\n");
+    const lista = items.map((p) => `• ${p.name} — ${formatPrice(p.price)}`).join("\n");
     const saludo = nombre.trim() ? `Hola, soy ${nombre.trim()}.` : "Hola.";
     return `${saludo} Me interesan estas piezas de ${BRAND}:\n\n${lista}\n\nVerlas aquí: ${shareUrl}`;
   };
@@ -148,7 +148,7 @@ export default function WishlistView({ allProducts }) {
                     </p>
                   )}
                   <p className="mt-1 font-label text-label-sm text-primary">
-                    {formatPrice(p.price, p.currency)}
+                    {formatPrice(p.price)}
                   </p>
                 </div>
 

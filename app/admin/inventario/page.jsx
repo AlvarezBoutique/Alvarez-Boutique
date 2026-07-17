@@ -257,7 +257,7 @@ export default function InventarioPage() {
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-headline text-title-md">{p.name}</h3>
                     <span className="shrink-0 font-label text-label-sm text-primary">
-                      {formatPrice(p.price, p.currency)}
+                      {formatPrice(p.price)}
                     </span>
                   </div>
                   {p.subtitle && (

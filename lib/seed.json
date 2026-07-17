@@ -29,6 +29,12 @@
    "name": "Perfumes",
    "icon": "spa",
    "sort": 5
+  },
+  {
+   "slug": "relojes",
+   "name": "Relojes",
+   "icon": "watch",
+   "sort": 6
   }
  ],
  "products": {

@@ -65,7 +65,7 @@ export default function ProductCard({ product, wished, onToggleWish, priority = 
         <div className="mb-2 flex items-start justify-between gap-2 lg:gap-3">
           <h3 className="font-headline text-title-md">{product.name}</h3>
           <span className="shrink-0 font-label text-label-sm text-primary">
-            {formatPrice(product.price, product.currency)}
+            {formatPrice(product.price)}
           </span>
         </div>
         {product.subtitle && (
