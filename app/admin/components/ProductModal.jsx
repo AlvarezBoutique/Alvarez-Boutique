@@ -9,8 +9,9 @@ import { Field, inputClass, ErrorNote, PrimaryButton, GhostButton } from "./Fiel
 const BADGES = ["", "Novedad", "Edición Limitada", "Más Vendido"];
 const MAX_MB = 5;
 
-export default function ProductModal({ product, categoryName, onSave, onDelete, onClose }) {
+export default function ProductModal({ product, categories, defaultCategoryId, onSave, onDelete, onClose }) {
   const [f, setF] = useState({
+    category_id: product?.category_id || defaultCategoryId || "",
     name: product?.name || "",
     subtitle: product?.subtitle || "",
     description: product?.description || "",
@@ -25,7 +26,7 @@ export default function ProductModal({ product, categoryName, onSave, onDelete, 
   const fileRef = useRef(null);
 
   const set = (k) => (e) => setF((prev) => ({ ...prev, [k]: e.target.value }));
-  const valid = f.name.trim() && f.price !== "" && Number(f.price) >= 0;
+  const valid = f.category_id && f.name.trim() && f.price !== "" && Number(f.price) >= 0;
 
   const pickFile = async (e) => {
     const file = e.target.files?.[0];
@@ -67,6 +68,7 @@ export default function ProductModal({ product, categoryName, onSave, onDelete, 
     try {
       await onSave({
         ...(product ? { id: product.id } : {}),
+        category_id: f.category_id,
         name: f.name.trim(),
         subtitle: f.subtitle.trim() || null,
         description: f.description.trim() || null,
@@ -83,10 +85,6 @@ export default function ProductModal({ product, categoryName, onSave, onDelete, 
 
   return (
     <Modal title={product ? "Editar producto" : "Nuevo producto"} onClose={onClose}>
-      <p className="-mt-3 mb-5 text-sm text-on-surface-variant/70">
-        Se publicará en <strong className="text-primary">{categoryName}</strong>.
-      </p>
-
       {/* Foto */}
       <div className="mb-5">
         <span className="mb-1.5 block font-label text-label-sm uppercase tracking-[0.08em] text-on-surface-variant/70">
@@ -128,6 +126,16 @@ export default function ProductModal({ product, categoryName, onSave, onDelete, 
           </div>
         </div>
       </div>
+
+      <Field label="Categoría" hint="Dónde aparecerá en el catálogo.">
+        <select className={inputClass} value={f.category_id} onChange={set("category_id")}>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </Field>
 
       <Field label="Nombre">
         <input className={inputClass} value={f.name} onChange={set("name")} placeholder="Vestido Lencero de Seda" autoFocus />

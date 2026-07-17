@@ -9,22 +9,15 @@ import { Field, inputClass, ErrorNote, PrimaryButton, GhostButton } from "../com
 export default function CuentasPage() {
   const { profile, createAccount } = useAuth();
   const [accounts, setAccounts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: profs, error: e1 }, { data: cats, error: e2 }] = await Promise.all([
-      supabase.from("profiles").select("*, categories(name)").order("created_at"),
-      supabase.from("categories").select("id, name").order("sort"),
-    ]);
-    if (e1 || e2) setError((e1 || e2).message);
-    else {
-      setAccounts(profs || []);
-      setCategories(cats || []);
-    }
+    const { data, error: err } = await supabase.from("profiles").select("*").order("created_at");
+    if (err) setError(err.message);
+    else setAccounts(data || []);
     setLoading(false);
   }, []);
 
@@ -41,7 +34,7 @@ export default function CuentasPage() {
           <p className="mt-1 text-body-md text-on-surface-variant/80">
             {loading
               ? "Cargando…"
-              : `${accounts.length} cuenta${accounts.length === 1 ? "" : "s"} · una categoría por cuenta`}
+              : `${accounts.length} cuenta${accounts.length === 1 ? "" : "s"} · todas con los mismos permisos`}
           </p>
         </div>
         <PrimaryButton type="button" onClick={() => setCreating(true)}>
@@ -68,9 +61,6 @@ export default function CuentasPage() {
                 <span className="material-symbols-outlined text-[20px]">person</span>
               </span>
             </div>
-            <span className="mt-4 inline-block rounded-full bg-primary-fixed/70 px-2.5 py-1 font-label text-[10px] uppercase tracking-[0.08em] text-on-primary-container">
-              {a.categories?.name || "Sin categoría"}
-            </span>
           </div>
         ))}
       </div>
@@ -83,7 +73,6 @@ export default function CuentasPage() {
 
       {creating && (
         <AccountModal
-          categories={categories}
           onSave={async (a) => {
             await createAccount(a);
             await load();
@@ -96,18 +85,13 @@ export default function CuentasPage() {
   );
 }
 
-function AccountModal({ categories, onSave, onClose }) {
-  const [f, setF] = useState({
-    fullName: "",
-    username: "",
-    password: "",
-    categoryId: categories[0]?.id || "",
-  });
+function AccountModal({ onSave, onClose }) {
+  const [f, setF] = useState({ fullName: "", username: "", password: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
   const set = (k) => (e) => setF((prev) => ({ ...prev, [k]: e.target.value }));
-  const valid = f.fullName.trim() && f.username.trim() && f.password.length >= 6 && f.categoryId;
+  const valid = f.fullName.trim() && f.username.trim() && f.password.length >= 6;
 
   const submit = async () => {
     setError(null);
@@ -123,34 +107,23 @@ function AccountModal({ categories, onSave, onClose }) {
   return (
     <Modal title="Nueva cuenta" onClose={onClose}>
       <p className="-mt-3 mb-5 text-sm leading-relaxed text-on-surface-variant/70">
-        Todas las cuentas tienen los mismos permisos. La categoría define qué productos podrá
-        subir y editar.
+        Todas las cuentas tienen los mismos permisos: pueden subir y editar productos de
+        cualquier categoría, y crear otras cuentas.
       </p>
 
       <Field label="Nombre completo">
         <input className={inputClass} value={f.fullName} onChange={set("fullName")} placeholder="Elena Ruiz" autoFocus />
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Nombre de usuario">
-          <input
-            className={inputClass}
-            value={f.username}
-            onChange={set("username")}
-            autoCapitalize="none"
-            placeholder="elena"
-          />
-        </Field>
-        <Field label="Categoría a cargo">
-          <select className={inputClass} value={f.categoryId} onChange={set("categoryId")}>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
+      <Field label="Nombre de usuario" hint="Con esto inicia sesión. No es un correo.">
+        <input
+          className={inputClass}
+          value={f.username}
+          onChange={set("username")}
+          autoCapitalize="none"
+          placeholder="elena"
+        />
+      </Field>
 
       <Field label="Contraseña" hint="Mínimo 6 caracteres.">
         <input className={inputClass} type="password" value={f.password} onChange={set("password")} />

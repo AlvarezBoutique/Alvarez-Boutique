@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
   const loadProfile = useCallback(async (userId) => {
     const { data } = await supabase
       .from("profiles")
-      .select("*, categories(slug, name)")
+      .select("*")
       .eq("id", userId)
       .single();
     if (data) {
@@ -101,19 +101,19 @@ export function AuthProvider({ children }) {
   };
 
   // Registro de la primera cuenta (solo cuando aún no existe ninguna).
-  const signUpFirstAccount = async ({ username, fullName, password, categoryId }) => {
+  const signUpFirstAccount = async ({ username, fullName, password }) => {
     const { error } = await supabase.auth.signUp({
       email: emailForUsername(username),
       password,
       options: {
-        data: { username: username.trim(), full_name: fullName.trim(), category_id: categoryId },
+        data: { username: username.trim(), full_name: fullName.trim() },
       },
     });
     if (error) throw new Error(error.message);
   };
 
   // Una cuenta crea otra sin perder su propia sesión (cliente temporal aparte).
-  const createAccount = async ({ username, fullName, password, categoryId }) => {
+  const createAccount = async ({ username, fullName, password }) => {
     const tmp = createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false, storageKey: "alvarez_tmp_" + username },
     });
@@ -121,7 +121,7 @@ export function AuthProvider({ children }) {
       email: emailForUsername(username),
       password,
       options: {
-        data: { username: username.trim(), full_name: fullName.trim(), category_id: categoryId },
+        data: { username: username.trim(), full_name: fullName.trim() },
       },
     });
     if (error) {
@@ -144,8 +144,6 @@ export function AuthProvider({ children }) {
     supabaseEnabled,
     session,
     profile,
-    categoryId: profile?.category_id || null,
-    category: profile?.categories || null,
     loadingAuth,
     authError,
     setAuthError,

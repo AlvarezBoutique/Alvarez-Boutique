@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/lib/browserClient";
 import { Field, inputClass, ErrorNote } from "./Field";
 import Logo from "@/app/components/Logo";
 
@@ -10,8 +9,7 @@ export default function Login() {
   const { signIn, signUpFirstAccount, hasAccounts, authError, setAuthError } = useAuth();
   const [mode, setMode] = useState("login"); // login | setup
   const [checked, setChecked] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [f, setF] = useState({ username: "", fullName: "", password: "", categoryId: "" });
+  const [f, setF] = useState({ username: "", fullName: "", password: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -23,15 +21,9 @@ export default function Login() {
   useEffect(() => {
     let active = true;
     hasAccounts()
-      .then(async (exists) => {
+      .then((exists) => {
         if (!active) return;
-        if (!exists) {
-          setMode("setup");
-          const { data } = await supabase.from("categories").select("id, name").order("sort");
-          if (!active) return;
-          setCategories(data || []);
-          setF((prev) => ({ ...prev, categoryId: data?.[0]?.id || "" }));
-        }
+        if (!exists) setMode("setup");
       })
       .catch(() => {
         if (active) setError("No se pudo conectar con la base de datos. Revisa tu conexión o las variables de entorno.");
@@ -82,20 +74,9 @@ export default function Login() {
         </p>
 
         {mode === "setup" && (
-          <>
-            <Field label="Nombre completo">
-              <input className={inputClass} value={f.fullName} onChange={set("fullName")} autoFocus />
-            </Field>
-            <Field label="Categoría a cargo" hint="Sólo podrás subir productos de esta categoría.">
-              <select className={inputClass} value={f.categoryId} onChange={set("categoryId")}>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </>
+          <Field label="Nombre completo">
+            <input className={inputClass} value={f.fullName} onChange={set("fullName")} autoFocus />
+          </Field>
         )}
 
         <Field label="Nombre de usuario">
@@ -124,8 +105,8 @@ export default function Login() {
 
         {mode === "setup" && (
           <p className="mt-4 text-center text-xs leading-relaxed text-on-surface-variant/70">
-            Todas las cuentas son iguales: no hay administradores. Después podrás crear las demás
-            desde <strong className="text-on-surface">Cuentas</strong>.
+            Todas las cuentas son iguales y pueden subir productos de cualquier categoría.
+            Después podrás crear las demás desde <strong className="text-on-surface">Cuentas</strong>.
           </p>
         )}
       </form>

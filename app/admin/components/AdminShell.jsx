@@ -12,7 +12,7 @@ const NAV = [
 
 export default function AdminShell({ children }) {
   const pathname = usePathname();
-  const { profile, category, signOut } = useAuth();
+  const { profile, signOut } = useAuth();
 
   return (
     <>
@@ -59,11 +59,6 @@ export default function AdminShell({ children }) {
               {profile?.full_name || profile?.username}
             </p>
             <p className="text-[10px] text-on-surface-variant/70">@{profile?.username}</p>
-            {category && (
-              <p className="mt-2 inline-block rounded-full bg-primary-fixed/70 px-2 py-0.5 font-label text-[10px] uppercase tracking-[0.08em] text-on-primary-container">
-                {category.name}
-              </p>
-            )}
           </div>
 
           <Link
